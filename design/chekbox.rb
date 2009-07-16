@@ -1,3 +1,8 @@
+class Fixnum
+	def spaces
+		' ' * self
+	end
+end
 
 module Design
 	extend self
@@ -6,13 +11,16 @@ module Design
 		content = ""
 		for name, bugs in hash
 			next if bugs.empty?
-			content << "\n" unless content.empty?
-			content << name + "\n"
+			content << "\n\n" unless content.empty?
+			content << name + "\n\n"
 			for id, bug in bugs
-#				content << ("    [%s] #%d  %s  %s\n" % [
-#					(bug.open ? ' ' : 'x'), bug.id, bug.strftime, bug.txt ])
 				content << ("   (%s) %-3d %s  %s\n" % [
 					(bug.open ? ' ' : 'X'), bug.id, bug.strftime, bug.txt ])
+				unless bug.more.empty?
+					bug.more.each_line do |line|
+						content << "#{ 9.spaces }> #{ line }"
+					end
+				end
 			end
 		end
 
@@ -24,15 +32,21 @@ module Design
 		cat = nil
 		current = nil
 		hash = {}
+		lastbug = nil
 
 		for line in content.each_line
 			if line !~ /^\s\s\s/
 				cat = line.strip
-				hash[ cat ] = {}
-				current = hash[ cat ]
+				unless cat.empty?
+					hash[ cat ] = {}
+					current = hash[ cat ]
+				end
 			else
 				if bug = line_to_bug( line, cat )
 					current[bug.id] = bug
+					lastbug = bug
+				elsif line =~ /\s{8}> (.+)$/
+					lastbug.more += $1 + "\n"
 				end
 			end
 		end
@@ -41,21 +55,18 @@ module Design
 	end
 
 	def line_to_bug( line, cat )
-#		if line =~ /^    \[([x ])\]\s+#(\d+)\s+(\d\d)\/(\d\d)\/(\d\d)\s+(.+)$/
 		if line =~ /^
 				\s+ [<\[(] ([xX ]) [>\])]
 				\s+ (\d+)
-				\s+ (\d\d) \/ (\d\d) \/ (\d\d)
+				\s+ #{Please::DATEFORMAT_REGEXP}
 				\s+ (.+) $/x
-#			puts "match!!"
+
 			open = $1 == ' ' 
 			id = $2.to_i
-			time = Time.local("20#{$3}".to_i, $4.to_i, $5.to_i)
-#			time = Time.local("20#{$2}".to_i, $3.to_i, $4.to_i)
-			txt = $6
+			time = Please::PARSE_DATEFORMAT.call( $3 )
+			txt = $4
 			bug = Bug.new( txt, cat, id, time, open )
 		else
-#			puts "no match for #{line}"
 			return nil
 		end
 	end

@@ -1,8 +1,16 @@
 module Please
 	extend self
 
-	DB_BASENAME = 'TODO.yaml'
+	DB_BASENAME = 'TODO.txt'
 	DATEFORMAT = "%y/%m/%d"
+	DATEFORMAT_REGEXP = '(\d\d/\d\d/\d\d)'
+	PARSE_DATEFORMAT = lambda do |str|
+		if str =~ %r'(\d\d)/(\d\d)/(\d\d)'
+			return Time.local( "20#$1".to_i, $2.to_i, $3.to_i )
+		end
+		return Time.at( 0 )
+	end
+	EDITOR = ENV['EDITOR'] || 'nano'
 
 	def find!
 		directory = "."
@@ -20,10 +28,10 @@ module Please
 	def init!
 		do_it = false
 		if not File.exists?( DB_BASENAME ) or
-				Say.create_overwrite?( DB_BASENAME )
-			File.open('TODO.yaml', 'a')
+				say.create_overwrite?( DB_BASENAME )
+			File.open(DB_BASENAME, 'a')
 		else
-			Say.failure
+			say.failure
 		end
 	end
 
@@ -46,15 +54,15 @@ module Please
 		unless found?
 			find!
 			unless found?
-				if Say.should_i_init?(why)
+				if say.should_i_init?(why)
 					init!
 					find!
 					unless found?
-						Say.failure
+						say.failure
 						exit
 					end
 				else
-					Say.help
+					say.help
 					exit
 				end
 			end
@@ -88,13 +96,9 @@ module Please
 	def modify(n, task)
 		load "modify a bug"
 
-		if bug = @hash[n]
-			bug['task'] = task
-			dump
-			Say.ack
-		else
-			Say.no_such_id
-		end
+		by_guess(n).txt = task
+		dump
+		ack
 	end
 
 	def add(cat, task)
@@ -104,8 +108,7 @@ module Please
 		bug = Bug.new( task, cat, id )
 		( @hash[bug.cat] ||= {} ) [id] = bug
 
-		dump
-		Say.added
+		dump & ack
 	end
 
 	def set_status(bug, open)
@@ -113,7 +116,7 @@ module Please
 
 		by_guess(bug).open = open
 		dump
-		Say.ack
+		ack
 	end
 
 	def find_next_id
@@ -128,7 +131,7 @@ module Please
 
 	def by_id( n )
 		@hash.each {|key,bugs| bugs.each {|id,bug| return bug if id==n }}
-		abort "bug with the ID #{n} not found."
+		cry "bug with the ID #{n} not found."
 	end
 
 	def by_guess( hint )
@@ -143,7 +146,7 @@ module Please
 		for key, bugs in @hash
 			for id, bug in bugs
 				if bug.txt.downcase.include? hintdown
-					possible << bug
+					partial << bug
 				end
 				if bug.txt.downcase == hintdown
 					exact << bug
@@ -151,14 +154,15 @@ module Please
 			end
 		end
 
-		case possible.size
+		case partial.size
 		when 0
-			abort "-- I can't figure out which bug you mean. Try to write the exact ID"
+			cry "I can't figure out which bug you mean. \
+Try to write the exact ID?"
 		when 1
-			return possible.first
+			return partial.first
 		else
 			return exact.first if exact.size == 1
-			abort "-- Your query was ambiguous. Can you be more specific please?"
+			cry "Your query was ambiguous. Can you be more specific please?"
 		end
 
 	end
@@ -166,41 +170,123 @@ module Please
 	def delete(n)
 		load "delete something"
 
-		if by_id(n)
-			for key, bugs in @hash
-				for id, bug in bugs
-					if id == n
-						bugs.delete( id )
-						break
-					end
+		myid = by_guess( n ).id
+
+		for key, bugs in @hash
+			for id, bug in bugs
+				if id == myid
+					bugs.delete( id )
+					break
 				end
 			end
-			dump
-			Say.ack
+		end
+		dump
+		ack
+	end
+
+	def edit(what)
+		bug = by_guess( what )
+
+		## Create a temporary file and fill it with the data
+		filename = "/tmp/bf.#{ Process.pid }.#{ rand 1000000 }"
+		file = File.new( filename, 'w' )
+		file.write( "##{ bug.txt }\n" )
+		file.write( bug.more ) unless bug.more.empty?
+		file.close
+
+		system("#{ EDITOR } #{ filename }")
+
+		bug.more = File.read( filename )
+		File.delete( filename )
+
+		if bug.more[0] == ?#
+			bug.txt = bug.more[1, bug.more.index( "\n" ) - 1]
+		end
+		bug.more = bug.more.each_line.to_a.select {|x| x[0] != ?#}.join
+
+		dump
+		ack
+	end
+
+	def move(what, to)
+		bug = by_guess( what )
+		cat = find_cat( to )
+
+#		p bug
+#		p cat
+		cry "the bug is already in that category" if bug.cat == cat
+
+		oldcat, bug.cat = bug.cat, cat
+		@hash[oldcat].delete( bug.id )
+		( @hash[cat] ||= {} )[bug.id] = bug
+
+		dump
+		ack
+	end
+
+	def list(what='all')
+		load "list"
+		for key, bugs in @hash
+			bugs.delete_if do |id, bug|
+				bug.open == (what != 'open')
+			end
+		end if %w[open close].include? what
+		@hash.delete_if {|name, bugs| bugs.empty?}
+
+		if @hash.empty?
+			if what=='close'
+				say "Sorry, there are no closed bugs."
+			else
+				say "You are bugfree. Hopefully."
+			end
 		else
-			Say.no_such_id
+			puts Design.compile( @hash )
+			puts
 		end
 	end
 
-	def list
-		load "list"
-		if @hash.empty?
-			Say "You are bugfree. Hopefully."
-		else
-			Say Design.compile( @hash )
-#			@hash.each do |i, bug|
-#				next if i == :categories
-#				next if bug.nil?
-#				p i, bug
-#				
-#				t = bug['time']
-#				t &&= t.strftime( DATEFORMAT )
-#				Say "%d, %s - %s; %s", i, t, bug['task'], bug['status']
-#			end
+	def rename_category(which, newname)
+		load "rename category"
+		cat = find_cat!(which)
+		cry "the names are the same" if cat == newname
+		@hash[newname] = @hash[cat]
+		@hash.delete(cat)
+		dump
+		ack
+	end
+
+	def reorder_category(which, newi)
+		load "reorder category"
+		cat = find_cat!(which)
+		newi = newi.to_i
+
+		hash, i, added = {}, 0, false
+		for name, bugs in @hash
+			if (!added) and (i == newi)
+				hash[cat] = @hash[cat]
+				added = true
+			end
+			if name != cat
+				hash[name] = bugs
+			end
+			i += 1
 		end
+
+		unless added
+			puts "x."
+			hash[cat] = @hash[cat]
+		end
+		@hash = hash
+
+		dump
+		ack
 	end
 
 	def find_cat(cat)
+		find_cat!(cat) rescue cat
+	end
+
+	def find_cat!(cat)
 		load "find a category"
 
 		if cat =~ /^\d+$/
@@ -214,7 +300,7 @@ module Please
 			end
 		end
 
-		return cat
+		cry "this category was not found"
 	end
 end
 

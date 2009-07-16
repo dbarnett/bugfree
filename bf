@@ -2,7 +2,7 @@
 ##--------------------------------------------------
 ## bugfree (hopefully)
 ##--------------------------------------------------
-Version = 'bf - *BugFree*, version 0.0.0'
+Version = 'bf - *BugFree*, version 1.0.0'
 Always_Dump = false
 Breaks = true
 

@@ -5,6 +5,10 @@ class Object
 	end unless defined? ensure_type
 end
 
+def sentence range
+	ARGV[range].join(" ")
+end
+
 if RUBY_VERSION >= '1.9'
 	SortedHash = Hash
 else

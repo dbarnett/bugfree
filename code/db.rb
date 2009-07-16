@@ -71,8 +71,8 @@ module Please
 			@hash = {}
 		end
 
-		unless @hash[:categories].is_a? Array
-			@hash[:categories] = [Bug::NO_CAT]
+		if @hash.empty?
+			@hash[Bug::NO_CAT] = {}
 		end
 
 		return @hash
@@ -81,11 +81,8 @@ module Please
 	def dump
 		content = Design.compile( @hash )
 
-		if Debug
-			puts content
-		else
-			File.open( fname, 'w' ) do |io| io.write( content ) end
-		end
+		puts content if Always_Dump
+		File.open( @db_filename, 'w' ) do |io| io.write( content ) end
 	end
 
 	def modify(n, task)
@@ -103,18 +100,81 @@ module Please
 	def add(cat, task)
 		load "add a bug"
 
-		id = @hash.keys.sort[-2].to_i + 1
-		@hash[id] = Bug.new( task, cat, id )
+		id = find_next_id
+		bug = Bug.new( task, cat, id )
+		( @hash[bug.cat] ||= {} ) [id] = bug
 
 		dump
-#		Say.added
+		Say.added
+	end
+
+	def set_status(bug, open)
+		load open ? "open a bug" : "close a bug"
+
+		by_guess(bug).open = open
+		dump
+		Say.ack
+	end
+
+	def find_next_id
+		max = -1
+		for key, bugs in @hash
+			for id, bug in bugs
+				max = id if max < id
+			end
+		end
+		return max + 1
+	end
+
+	def by_id( n )
+		@hash.each {|key,bugs| bugs.each {|id,bug| return bug if id==n }}
+		abort "bug with the ID #{n} not found."
+	end
+
+	def by_guess( hint )
+		load "find a bug"
+
+		if hint =~ /^\d+$/
+			return by_id( hint.to_i )
+		end
+
+		hintdown = hint.downcase
+		partial, exact = [], []
+		for key, bugs in @hash
+			for id, bug in bugs
+				if bug.txt.downcase.include? hintdown
+					possible << bug
+				end
+				if bug.txt.downcase == hintdown
+					exact << bug
+				end
+			end
+		end
+
+		case possible.size
+		when 0
+			abort "-- I can't figure out which bug you mean. Try to write the exact ID"
+		when 1
+			return possible.first
+		else
+			return exact.first if exact.size == 1
+			abort "-- Your query was ambiguous. Can you be more specific please?"
+		end
+
 	end
 
 	def delete(n)
 		load "delete something"
 
-		if @hash[n]
-			@hash.delete n
+		if by_id(n)
+			for key, bugs in @hash
+				for id, bug in bugs
+					if id == n
+						bugs.delete( id )
+						break
+					end
+				end
+			end
 			dump
 			Say.ack
 		else
@@ -127,15 +187,16 @@ module Please
 		if @hash.empty?
 			Say "You are bugfree. Hopefully."
 		else
-			@hash.each do |i, bug|
-				next if i == :categories
-				next if bug.nil?
-				p i, bug
-				
-				t = bug['time']
-				t &&= t.strftime( DATEFORMAT )
-				Say "%d, %s - %s; %s", i, t, bug['task'], bug['status']
-			end
+			Say Design.compile( @hash )
+#			@hash.each do |i, bug|
+#				next if i == :categories
+#				next if bug.nil?
+#				p i, bug
+#				
+#				t = bug['time']
+#				t &&= t.strftime( DATEFORMAT )
+#				Say "%d, %s - %s; %s", i, t, bug['task'], bug['status']
+#			end
 		end
 	end
 
@@ -145,6 +206,15 @@ module Please
 		if cat =~ /^\d+$/
 			return @hash.keys[$1.to_i]
 		end
+
+		catd = cat.downcase
+		for key in @hash.keys
+			if key.downcase.include? catd
+				return key
+			end
+		end
+
+		return cat
 	end
 end
 

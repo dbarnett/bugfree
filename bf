@@ -3,7 +3,7 @@
 ## bugfree (hopefully)
 ##--------------------------------------------------
 Version = 'bf - *BugFree*, version 0.0.0'
-Debug = true
+Always_Dump = false
 
 ##--------------------------------------------------
 ## require shit
@@ -39,17 +39,23 @@ when 'add'
 	case ARGV.size
 	when 1; Say.help 'add'
 	when 2; Please.add nil, ARGV[1]
-	else Please.add Please.find_cat(ARGV[1]), ARGV[2..-1].join( ' ' )
+	else Please.add Please.find_cat(ARGV[1]), sentence(2..-1)
 	end
 	
 when 'del'
 	Please.delete ARGV[1].to_i
+
+when 'close', 'open'
+	Please.set_status(ARGV[1], cmd == 'open')
+
+when 'cat'
+	Please.add_category sentence(1..-1)
 	
 when 'clear'
 	Please.clear
 
 when 'mod'
-	Please.modify arg1.to_i, ARGV[2..-1].join(' ')
+	Please.modify arg1.to_i, sentence(2..-1)
 	
 when nil
 	Please.find!

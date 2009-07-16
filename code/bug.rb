@@ -3,8 +3,8 @@ class Bug < Struct.new(:txt, :cat, :id, :time, :open)
 	NO_CAT = "General"
 	NO_TXT = "no text"
 
-	def initialize(txt, cat, id)
-		super(txt, cat, id, Time.now, true)
+	def initialize(txt, cat, id, time=nil, open=true)
+		super(txt, cat, id, time||Time.now, open)
 	end
 
 	def strftime; time.strftime(Please::DATEFORMAT) end

@@ -36,14 +36,14 @@ when 'version', '--version', '-v'
 when 'list'
 	Please.list
 
-when 'add'
+when 'add', '+'
 	case ARGV.size
 	when 1; say.help 'add'
 	when 2; Please.add nil, ARGV[1]
 	else Please.add Please.find_cat(ARGV[1]), sentence(2..-1)
 	end
 	
-when 'del'
+when 'del', '-'
 	Please.delete arg1
 
 when 'close', 'open'

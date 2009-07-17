@@ -1,4 +1,0 @@
-Feature
-
-   ( ) #0   09/07/17  colorful output in bf list
-   ( ) #1   09/07/17  commands to shortest unambiguous string

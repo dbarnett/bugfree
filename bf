@@ -38,7 +38,7 @@ when 'help', '--help', '-h', '-?'
 when 'version', '--version', '-v'
 	say Version
 
-when 'list'
+when 'list', 'all'
 	Please.list
 
 when 'add', '+'

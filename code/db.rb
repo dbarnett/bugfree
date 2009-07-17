@@ -201,6 +201,11 @@ Try to write the exact ID?"
 		ack
 	end
 
+	def edit_all
+		find!
+		system("#{ EDITOR } #{ @db_filename }")
+	end
+
 	def edit(what)
 		bug = by_guess( what )
 

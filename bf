@@ -82,8 +82,11 @@ when 'reorder'
 	Please.reorder_category(arg1, arg2)
 
 when 'edit'
-	cry "what to edit?" unless arg1
-	Please.edit(arg1)
+	if arg1
+		Please.edit arg1
+	else
+		Please.edit_all
+	end
 
 when 'copy'
 	say.help('copy') and cry("what to copy?")  unless arg1

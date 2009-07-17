@@ -1,6 +1,7 @@
 
 class InternalError < Exception; end
 class UserError < RuntimeError; end
+class NotFound < UserError; end
 
 A = 'a'
 W = 'w'

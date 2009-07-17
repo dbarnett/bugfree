@@ -50,6 +50,7 @@ module Design
 		current = nil
 		hash = {}
 		lastbug = nil
+		allbugs = {}
 
 		for line in content.each_line
 			next if line.strip.empty?
@@ -59,10 +60,18 @@ module Design
 				hash[ cat ] = {}
 				current = hash[ cat ]
 			else
-				if bug = line_to_bug( line, cat )
+				if bug = line_to_bug( line )
+
+					bug = allbugs[bug.id] if allbugs[bug.id]
 					current[bug.id] = bug
+					allbugs[bug.id] = bug
 					lastbug = bug
-				elsif lastbug and line =~ / {10}> (.+)$/
+
+					bug.n += 1
+					bug.cat << cat
+					bug.cat.uniq!
+
+				elsif lastbug and lastbug.n == 1 and line =~ / {10}> (.+)$/
 					lastbug.more += $1 + "\n"
 				else
 					$errors += 1
@@ -73,7 +82,7 @@ module Design
 		return hash
 	end
 
-	def line_to_bug( line, cat )
+	def line_to_bug( line )
 		if line =~ /^
 				\s+ [<\[(] ([xX ]) [>\])]
 				\s+ \# (\d+)
@@ -84,7 +93,7 @@ module Design
 			id = $2.to_i
 			time = Please::PARSE_DATEFORMAT.call( $3 )
 			txt = $4
-			bug = Bug.new( txt, cat, id, time, open )
+			bug = Bug.new( id, txt, time, open )
 		else
 			return nil
 		end

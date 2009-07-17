@@ -19,20 +19,24 @@ module Please
 
 		10.times do
 			if File.exists?( fn = File.join( directory, DB_BASENAME ) )
-				@db_filename = fn
-				break
+				return @db_filename = fn
 			end
 			directory = File.join( directory, '..' )
 		end
+		raise NotFound, "There is no database"
 	end
 
 	def init!
 		do_it = false
 		if not File.exists?( DB_BASENAME ) or
 				say.create_overwrite?( DB_BASENAME )
-			File.open(DB_BASENAME, A)
+			File.open(DB_BASENAME, A) rescue cry(
+				"I'm *unable* to initialize. :/  \
+Are you sure that you've got the necessary *permissions to \
+write* files in here?" )
+			ack
 		else
-			say.failure
+			aborted
 		end
 	end
 
@@ -42,9 +46,7 @@ module Please
 
 	def clear
 		find!
-		if found?
-			File.delete(@db_filename)
-		end
+		File.delete(@db_filename)
 	end
 
 
@@ -58,15 +60,12 @@ module Please
 	def load!(why = 'load')
 		## make sure there's a database to load from
 		unless found?
-			find!
-			unless found?
+			begin
+				find!
+			rescue NotFound
 				if say.should_i_init?(why)
 					init!
 					find!
-					unless found?
-						say.failure
-						exit
-					end
 				else
 					say.help
 					exit
@@ -119,8 +118,9 @@ Do you want to continue? [yn] "
 		load "add a bug"
 
 		id = find_next_id
-		bug = Bug.new( task, cat, id )
-		( @hash[bug.cat] ||= {} ) [id] = bug
+		bug = Bug.new( id, task )
+		bug.cat << cat
+		( @hash[cat] ||= {} ) [id] = bug
 
 		dump & ack
 	end
@@ -181,12 +181,14 @@ Try to write the exact ID?"
 
 	end
 
-	def delete(n)
+	def delete(what, cat)
 		load "delete something"
 
-		myid = by_guess( n ).id
+		myid = by_guess( what ).id
+		cat = cat && find_cat( cat )
 
 		for key, bugs in @hash
+			next if cat and cat != key
 			for id, bug in bugs
 				if id == myid
 					bugs.delete( id )
@@ -194,6 +196,7 @@ Try to write the exact ID?"
 				end
 			end
 		end
+
 		dump
 		ack
 	end
@@ -226,12 +229,23 @@ Try to write the exact ID?"
 		bug = by_guess( what )
 		cat = find_cat( to )
 
-#		p bug
-#		p cat
-		cry "the bug is already in that category" if bug.cat == cat
+		cry "the bug is already in that category" if bug.in_cat?( cat )
+
+		bug.cat.each {|c| @hash[c].delete( bug.id ) }
+		bug.cat = [cat]
+		( @hash[cat] ||= {} )[bug.id] = bug
+
+		dump
+		ack
+	end
+
+	def copy(what, to)
+		bug = by_guess( what )
+		cat = find_cat( to )
+
+		cry "the bug is already in that category" if bug.in_cat?( cat )
 
 		oldcat, bug.cat = bug.cat, cat
-		@hash[oldcat].delete( bug.id )
 		( @hash[cat] ||= {} )[bug.id] = bug
 
 		dump

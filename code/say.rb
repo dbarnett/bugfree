@@ -90,6 +90,10 @@ def cry( str, *args )
 	raise UserError, str % args, caller( 1 )
 end
 
+def aborted()
+	cry "aborted."
+end
+
 def boldize(str)
 	return str unless USE_BOLD
 	str.gsub(/\*([^*]+)\*/, "\033[1m\\1\033[0m")
@@ -128,7 +132,6 @@ def break_on_nl(str)
 
 		if !n
 			if dot and (c - dot) < 20
-				p "YEAH"
 				newstr << uhmm(first) + str.slice!(0, dot+1) + "\n"
 				str.lstrip!
 			else

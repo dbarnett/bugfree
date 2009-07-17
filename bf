@@ -50,7 +50,7 @@ when 'add', '+'
 	
 when 'del', '-'
 	cry "what to delete?" unless arg1
-	Please.delete arg1
+	Please.delete arg1, arg2
 
 when 'close', 'open'
 	if arg1
@@ -85,6 +85,12 @@ when 'edit'
 	cry "what to edit?" unless arg1
 	Please.edit(arg1)
 
+when 'copy'
+	say.help('copy') and cry("what to copy?")  unless arg1
+	cry "where to copy it to?"  unless arg2
+	Please.copy( arg1, arg2 )
+
+
 when 'refresh'
 	Please.load "refresh"
 	Please.dump
@@ -101,10 +107,10 @@ when /^(\d+)$/
 	end
 	
 when nil
-	Please.find!
-	if Please.found?
-		Please.list
-	else
+	begin
+		Please.find!
+		Please.list('open')
+	rescue NotFound
 		say.help
 	end
 

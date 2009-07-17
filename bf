@@ -5,6 +5,8 @@
 Version = 'bf - *BugFree*, version 1.0.0'
 Always_Dump = false
 Breaks = true
+USE_LESS = false
+USE_BOLD = true
 
 ##--------------------------------------------------
 ## require shit
@@ -15,8 +17,6 @@ $: << MYDIR = File.dirname( Pathname( __FILE__ ).realpath )
 for file in Dir.glob( "#{MYDIR}/code/**/*.rb" )
 	require file [MYDIR.size + 1 ... -3]
 end
-
-require 'design/chekbox'
 
 ##--------------------------------------------------
 ## do stuff, depending on command

@@ -1,9 +1,3 @@
-class Fixnum
-	def spaces
-		' ' * self
-	end
-end
-
 module Design
 	extend self
 
@@ -14,11 +8,11 @@ module Design
 			content << "\n\n" unless content.empty?
 			content << name + "\n\n"
 			for id, bug in bugs
-				content << ("   (%s) %-3d %s  %s\n" % [
+				content << ("   (%s) #%-3d %s  %s\n" % [
 					(bug.open ? ' ' : 'X'), bug.id, bug.strftime, bug.txt ])
 				unless bug.more.empty?
 					bug.more.each_line do |line|
-						content << "#{ 9.spaces }> #{ line }"
+						content << "#{ 10.spaces }> #{ line }"
 					end
 				end
 			end
@@ -45,7 +39,7 @@ module Design
 				if bug = line_to_bug( line, cat )
 					current[bug.id] = bug
 					lastbug = bug
-				elsif line =~ /\s{8}> (.+)$/
+				elsif lastbug and line =~ / {10}> (.+)$/
 					lastbug.more += $1 + "\n"
 				end
 			end
@@ -57,7 +51,7 @@ module Design
 	def line_to_bug( line, cat )
 		if line =~ /^
 				\s+ [<\[(] ([xX ]) [>\])]
-				\s+ (\d+)
+				\s+ \# (\d+)
 				\s+ #{Please::DATEFORMAT_REGEXP}
 				\s+ (.+) $/x
 

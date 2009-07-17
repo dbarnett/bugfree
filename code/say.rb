@@ -1,5 +1,4 @@
 
-USE_BOLD = true
 module Say
 	extend self
 
@@ -81,35 +80,7 @@ Examples:
 "Pardon? I know of *no such command*: %s"
 
 	## }}}
-
-#	## stuff {{{
-#	def say(str, *args)
-#		str = str.to_s
-#		if USE_BOLD
-#			$stdout.write boldize(str) % args
-#		else
-#			$stdout.write str % args
-#		end
-#	end
-#
-#	def sayl(str, *args)
-#		say(str, *args)
-#		puts
-#	end
-#
-#	def conv
-#		say Time.now.strftime("-- ")
-#	end
-#
-#	def yes?
-#		%w[y yes].include?($stdin.gets.strip.downcase)
-#	end
-#
-#	## }}}
 end
-
-class InternalError < Exception; end
-class UserError < RuntimeError; end
 
 def error( str, *args )
 	raise InternalError, str % args, caller( 1 )
@@ -122,6 +93,10 @@ end
 def boldize(str)
 	return str unless USE_BOLD
 	str.gsub(/\*([^*]+)\*/, "\033[1m\\1\033[0m")
+end
+
+def number_of_rows
+	`stty size`.scan(/\d+/).first.to_i rescue 24
 end
 
 def number_of_columns

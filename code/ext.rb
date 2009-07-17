@@ -1,8 +1,21 @@
 
+class InternalError < Exception; end
+class UserError < RuntimeError; end
+
+A = 'a'
+W = 'w'
+R = 'r'
+
 class Object
 	def ensure_type(type, default)
 		type === self ? self : default
-	end unless defined? ensure_type
+	end
+end
+
+class Fixnum
+	def spaces
+		' ' * self
+	end
 end
 
 def sentence range

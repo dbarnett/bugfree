@@ -11,6 +11,7 @@ module Please
 		return Time.at( 0 )
 	end
 	EDITOR = ENV['EDITOR'] || 'nano'
+	LESSFILE = '/tmp/bf_less'
 
 	def find!
 		directory = "."
@@ -29,7 +30,7 @@ module Please
 		do_it = false
 		if not File.exists?( DB_BASENAME ) or
 				say.create_overwrite?( DB_BASENAME )
-			File.open(DB_BASENAME, 'a')
+			File.open(DB_BASENAME, A)
 		else
 			say.failure
 		end
@@ -46,11 +47,16 @@ module Please
 		end
 	end
 
+
 	def load(why = 'load')
 		## do not load twice
 		return if defined? @hash
 
-		## make sure there's a database
+		load!(why)
+	end
+
+	def load!(why = 'load')
+		## make sure there's a database to load from
 		unless found?
 			find!
 			unless found?
@@ -70,7 +76,7 @@ module Please
 
 		## actually load
 		@hash = nil
-		File.open( @db_filename, 'r' ) do |f|
+		File.open( @db_filename, R ) do |f|
 			@hash = Design.extract( f )
 		end
 
@@ -90,7 +96,7 @@ module Please
 		content = Design.compile( @hash )
 
 		puts content if Always_Dump
-		File.open( @db_filename, 'w' ) do |io| io.write( content ) end
+		File.open( @db_filename, W ) do |io| io.write( content ) end
 	end
 
 	def modify(n, task)
@@ -240,8 +246,16 @@ Try to write the exact ID?"
 				say "You are bugfree. Hopefully."
 			end
 		else
-			puts Design.compile( @hash )
-			puts
+			txt = Design.compile( @hash )
+
+			if USE_LESS and txt.each_line.to_a.size > number_of_rows
+				File.open( LESSFILE, W ) do |f| f.write( txt ) end
+				system( "less", LESSFILE )
+				File.delete( LESSFILE )
+			else
+				puts txt
+				puts
+			end
 		end
 	end
 

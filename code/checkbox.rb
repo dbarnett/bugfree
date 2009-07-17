@@ -29,12 +29,11 @@ module Design
 		lastbug = nil
 
 		for line in content.each_line
+			next if line.strip.empty?
 			if line !~ /^\s\s\s/
 				cat = line.strip
-				unless cat.empty?
-					hash[ cat ] = {}
-					current = hash[ cat ]
-				end
+				hash[ cat ] = {}
+				current = hash[ cat ]
 			else
 				if bug = line_to_bug( line, cat )
 					current[bug.id] = bug

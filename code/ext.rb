@@ -13,6 +13,24 @@ class Object
 	end
 end
 
+class Hash
+	def sort!( &block )
+		replace( self.class[self.sort( &block )] )
+	end
+end
+
+class TrueClass
+	def to_i
+		1
+	end
+end
+
+class FalseClass
+	def to_i
+		0
+	end
+end
+
 class Fixnum
 	def spaces
 		' ' * self

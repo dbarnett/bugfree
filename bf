@@ -102,6 +102,9 @@ when 'refresh'
 when 'less'
 	Please.list(arg1, true)
 
+when 'sort'
+	Please.sort(arg1, arg2 == 'rev')
+
 when /^(\d+)$/
 	if arg1
 		Please.modify( $1, sentence( 1..-1 ) )

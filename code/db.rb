@@ -125,6 +125,30 @@ Do you want to continue? [yn] "
 		dump & ack
 	end
 
+	def sort(how, reverse=false)
+		load "sort"
+
+		if how == 'id'
+			sort_like { |a, b| a.id <=> b.id }
+		elsif how == 'alpha'
+			sort_like { |a, b| a.txt <=> b.txt }
+		elsif how == 'date'
+			sort_like { |a, b| a.time <=> b.time }
+		elsif how == 'open'
+			sort_like { |b, a| a.open.to_i <=> b.open.to_i }
+		end
+
+		dump & ack
+	end
+
+	def sort_like( &block )
+		for cat, bugs in @hash
+			bugs.sort! do |a, b|
+				block.call( a[1], b[1] )
+			end
+		end
+	end
+
 	def set_status(bug, open)
 		load open ? "open a bug" : "close a bug"
 

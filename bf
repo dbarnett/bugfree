@@ -3,10 +3,15 @@
 ## bugfree (hopefully)
 ##--------------------------------------------------
 Version = 'bf - *BugFree*, version 1.0.0'
+
+##--------------------------------------------------
+## initialize constants and globals
 Always_Dump = false
 Breaks = true
 USE_LESS = false
 USE_BOLD = true
+COLORFUL = true
+$errors = 0
 
 ##--------------------------------------------------
 ## require shit
@@ -44,6 +49,7 @@ when 'add', '+'
 	end
 	
 when 'del', '-'
+	cry "what to delete?" unless arg1
 	Please.delete arg1
 
 when 'close', 'open'
@@ -57,6 +63,7 @@ when 'clear'
 	Please.clear
 
 when 'mod'
+	cry "what to modify?" unless arg1
 	Please.modify arg1, sentence(2..-1)
 
 when 'move'
@@ -65,18 +72,26 @@ when 'move'
 	Please.move arg1, arg2
 
 when 'rename'
+	say.help('rename') and cry("which category to rename?")  unless arg1
+	cry "what to rename it to?" unless arg2
 	Please.rename_category(arg1, sentence(2..-1))
 	
 when 'reorder'
+	say.help('reorder') and cry("which category to reorder?")  unless arg1
+	cry "what to reorder it to?" unless arg2
 	Please.reorder_category(arg1, arg2)
 
 when 'edit'
+	cry "what to edit?" unless arg1
 	Please.edit(arg1)
 
 when 'refresh'
 	Please.load "refresh"
 	Please.dump
 	ack
+
+when 'less'
+	Please.list(arg1, true)
 
 when /^(\d+)$/
 	if arg1
@@ -98,7 +113,8 @@ else
 	puts
 	say.help
 
-## don't bother to print a stack trace for UserErrors
+## don't bother to print a stack trace for UserErrors,
+## since users are usually too stupid anyway to make use of them.
 end rescue UserError===$! ? say( $!.message ) : raise
 
 

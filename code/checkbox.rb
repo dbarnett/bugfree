@@ -1,6 +1,29 @@
 module Design
 	extend self
 
+	def compile_colorful( hash )
+		content = ""
+		for name, bugs in hash
+			next if bugs.empty?
+			content << "\n\n" unless content.empty?
+			content << "#{blue}#{name}#{no_attr}\n\n"
+			for id, bug in bugs
+#				t = bug.strftime.gsub( /([^\d\w]+)/, "#{cyan}\\1#{no_attr}" )
+				t = bug.strftime.gsub( /([\d\w]+)/, "#{cyan}\\1#{no_attr}" )
+#				t = cyan + bug.strftime + no_attr
+				content << ("   (%s) #{magenta}#%-3d#{no_attr} %s  %s\n" % [
+					(bug.open ? ' ' : "#{green}X#{no_attr}"), bug.id, t, bug.txt ])
+				unless bug.more.empty?
+					bug.more.each_line do |line|
+						content << "#{ 10.spaces }#{magenta}>#{no_attr} #{ line }"
+					end
+				end
+			end
+		end
+
+		return content
+	end
+
 	def compile( hash )
 		content = ""
 		for name, bugs in hash
@@ -31,6 +54,7 @@ module Design
 		for line in content.each_line
 			next if line.strip.empty?
 			if line !~ /^\s\s\s/
+				$errors += 1 if current && current.size == 0
 				cat = line.strip
 				hash[ cat ] = {}
 				current = hash[ cat ]
@@ -40,6 +64,8 @@ module Design
 					lastbug = bug
 				elsif lastbug and line =~ / {10}> (.+)$/
 					lastbug.more += $1 + "\n"
+				else
+					$errors += 1
 				end
 			end
 		end

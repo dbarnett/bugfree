@@ -95,6 +95,18 @@ def boldize(str)
 	str.gsub(/\*([^*]+)\*/, "\033[1m\\1\033[0m")
 end
 
+def bold;     "\033[1m" end
+def no_attr;  "\033[0m" end
+
+def black;    "\033[0;30m" end
+def red;      "\033[0;31m" end
+def green;    "\033[0;32m" end
+def yellow;   "\033[0;33m" end
+def blue;     "\033[0;34m" end
+def magenta;  "\033[0;35m" end
+def cyan;     "\033[0;36m" end
+def white;    "\033[0;37m" end
+
 def number_of_rows
 	`stty size`.scan(/\d+/).first.to_i rescue 24
 end

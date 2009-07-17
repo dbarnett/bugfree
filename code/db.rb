@@ -1,7 +1,7 @@
 module Please
 	extend self
 
-	DB_BASENAME = 'TODO.txt'
+	DB_BASENAME = 'TODO'
 	DATEFORMAT = "%y/%m/%d"
 	DATEFORMAT_REGEXP = '(\d\d/\d\d/\d\d)'
 	PARSE_DATEFORMAT = lambda do |str|
@@ -96,6 +96,14 @@ module Please
 		content = Design.compile( @hash )
 
 		puts content if Always_Dump
+
+		if $errors > 3
+			ask "*a number of errors* have occurred while reading \
+the TODO-file. \
+You may *lose data* if you continue this operation. \
+Do you want to continue? [yn] "
+			cry "aborted. Maybe backup the file, try again and see what happens?" unless yes?
+		end
 		File.open( @db_filename, W ) do |io| io.write( content ) end
 	end
 
@@ -230,8 +238,9 @@ Try to write the exact ID?"
 		ack
 	end
 
-	def list(what='all')
+	def list(what=nil, less=false)
 		load "list"
+		what ||= 'all'
 		for key, bugs in @hash
 			bugs.delete_if do |id, bug|
 				bug.open == (what != 'open')
@@ -246,9 +255,13 @@ Try to write the exact ID?"
 				say "You are bugfree. Hopefully."
 			end
 		else
-			txt = Design.compile( @hash )
+			if COLORFUL and Design.respond_to?( :compile_colorful )
+				txt = Design.compile_colorful( @hash )
+			else
+				txt = Design.compile( @hash )
+			end
 
-			if USE_LESS and txt.each_line.to_a.size > number_of_rows
+			if less or USE_LESS and txt.each_line.to_a.size > number_of_rows
 				File.open( LESSFILE, W ) do |f| f.write( txt ) end
 				system( "less", LESSFILE )
 				File.delete( LESSFILE )

@@ -11,22 +11,49 @@ Breaks = true
 USE_LESS = false
 USE_BOLD = true
 COLORFUL = true
-$errors = 0
+$errors = []
 
 ##--------------------------------------------------
 ## require shit
 
 require 'pathname'
-$: << MYDIR = File.dirname( Pathname( __FILE__ ).realpath )
+require 'abbrev'
+
+$LOAD_PATH << MYDIR =
+	File.dirname( Pathname.new( __FILE__ ).realpath )
 
 for file in Dir.glob( "#{MYDIR}/code/**/*.rb" )
 	require file [MYDIR.size + 1 ... -3]
 end
 
 ##--------------------------------------------------
-## do stuff, depending on command
+## compile a list of unambiguous commands
 
+commands = %w[
+	add all
+	close copy cp clear
+	delete
+	edit
+	help 
+	init 
+	list less
+	move modify mv
+	open 
+	rename refresh reorder
+	sort
+	version
+]
+
+not_wanted = %w[
+	less clear
+	cp mv
+]
+abbrev = ( commands - not_wanted ).abbrev
+
+##--------------------------------------------------
+## do stuff, depending on command
 cmd, arg1, arg2 = ARGV
+cmd = abbrev[cmd] if abbrev[cmd]
 
 case cmd
 when 'init'
@@ -62,11 +89,11 @@ when 'close', 'open'
 when 'clear'
 	Please.clear
 
-when 'mod'
+when 'modify'
 	cry "what to modify?" unless arg1
 	Please.modify arg1, sentence(2..-1)
 
-when 'move'
+when 'move', 'mv'
 	say.help('move') and cry("what to move?")  unless arg1
 	cry "where to move it to?" unless arg2
 	Please.move arg1, arg2
@@ -88,7 +115,7 @@ when 'edit'
 		Please.edit_all
 	end
 
-when 'copy'
+when 'copy', 'cp'
 	say.help('copy') and cry("what to copy?")  unless arg1
 	cry "where to copy it to?"  unless arg2
 	Please.copy( arg1, arg2 )
@@ -121,9 +148,8 @@ when nil
 	end
 
 else
-	say.no_such_command(cmd)
-	puts
 	say.help
+	say.no_such_command(cmd)
 
 ## don't bother to print a stack trace for UserErrors,
 ## since users are usually too stupid anyway to make use of them.

@@ -17,6 +17,9 @@ class Hash
 	def sort!( &block )
 		replace( self.class[self.sort( &block )] )
 	end
+	def reverse!
+		replace( self.class[self.to_a.reverse] )
+	end
 end
 
 class TrueClass

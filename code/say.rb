@@ -34,20 +34,22 @@ module Say
 	
 	## bla bla bla {{{
 	HELP =
-"usage: bf *command* [options]
+"usage: bf *command* [arguments]
 the commands are:
    *init*      create an empty todo file
    *help*      use 'bf help COMMAND' for more info about a command
+             'bf help help' will give you some general information
    *version*   print the version
    *list*      list all bugs. default action if a todo file exists
    *move*      move a bug to a different category
    *reorder*   move a category to the specified place (number)
    *rename*    rename a category
-   *mod*       modify the message of a bug
+   *modify*    modify the message of a bug
    *clear*     remove the todo file to clear all records
    *close*     close a bug, or list all closed bugs
    *open*      open a bug, or list all opened bugs
-   *del*       delete a bug
+   *edit*      edits bug or whole list in an external editor
+   *delete*    delete a bug
 
 "
 
@@ -161,13 +163,17 @@ def say( *args )
 end
 
 def yes?
-	%w[y yes].include?( $stdin.gets.strip.downcase )
+	%w[y yes].include?( input )
 end
 
 def ask_for( &block )
 	error "i need a block please!" unless block_given?
-	str = $stdin.gets.strip.downcase
+	str = input
 	yield( str ) && str
+end
+
+def input
+	$stdin.gets.strip.downcase
 end
 
 def uhmm(first=false)

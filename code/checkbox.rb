@@ -15,7 +15,7 @@ module Design
 					(bug.open ? ' ' : "#{green}X#{no_attr}"), bug.id, t, bug.txt ])
 				unless bug.more.empty?
 					bug.more.each_line do |line|
-						content << "#{ 10.spaces }#{magenta}>#{no_attr} #{ line }"
+						content << "#{ 15.spaces } #{ line }"
 					end
 				end
 			end
@@ -35,7 +35,7 @@ module Design
 					(bug.open ? ' ' : 'X'), bug.id, bug.strftime, bug.txt ])
 				unless bug.more.empty?
 					bug.more.each_line do |line|
-						content << "#{ 10.spaces }> #{ line }"
+						content << "#{ 15.spaces }#{ line }"
 					end
 				end
 			end
@@ -55,7 +55,7 @@ module Design
 		for line in content.each_line
 			next if line.strip.empty?
 			if line !~ /^\s\s\s/
-				$errors += 1 if current && current.size == 0
+				$errors << line if current && current.size == 0
 				cat = line.strip
 				hash[ cat ] = {}
 				current = hash[ cat ]
@@ -71,10 +71,10 @@ module Design
 					bug.cat << cat
 					bug.cat.uniq!
 
-				elsif lastbug and lastbug.n == 1 and line =~ / {10}> (.+)$/
-					lastbug.more += $1 + "\n"
+				elsif lastbug and line =~ / {15}(.+)$/
+					lastbug.more += $1 + "\n" if lastbug.n == 1
 				else
-					$errors += 1
+					$errors << line
 				end
 			end
 		end

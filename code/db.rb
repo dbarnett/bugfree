@@ -46,7 +46,8 @@ write* files in here?" )
 
 	def clear
 		find!
-		File.delete(@db_filename)
+		ask "You asked me to remove the bug database.  Are you certain? [yn] "
+		File.delete(@db_filename) if yes?
 	end
 
 
@@ -96,12 +97,25 @@ write* files in here?" )
 
 		puts content if Always_Dump
 
-		if $errors > 3
-			ask "*a number of errors* have occurred while reading \
-the TODO-file. \
-You may *lose data* if you continue this operation. \
-Do you want to continue? [yn] "
-			cry "aborted. Maybe backup the file, try again and see what happens?" unless yes?
+		unless $errors.empty?
+			loop do
+				ask "*a number of errors* have occurred while reading \
+the TODO-file.  \
+You may *lose data* if you continue this operation.  \
+Do you want to continue? [yes no which] "
+
+				case input
+				when 'y', 'yes'
+					break
+				when 'n', 'no'
+					cry "aborted.  \
+Maybe backup the file, try again and see what happens?"
+				when 'w', 'which'
+					$errors.each_with_index do |er, i|
+						puts "#{i}: #{er}"
+					end
+				end
+			end
 		end
 		File.open( @db_filename, W ) do |io| io.write( content ) end
 	end
@@ -128,14 +142,21 @@ Do you want to continue? [yn] "
 	def sort(how, reverse=false)
 		load "sort"
 
-		if how == 'id'
+		case how
+		when 'id'
 			sort_like { |a, b| a.id <=> b.id }
-		elsif how == 'alpha'
+		when 'alpha', 'text'
 			sort_like { |a, b| a.txt <=> b.txt }
-		elsif how == 'date'
+		when 'date', 'time'
 			sort_like { |a, b| a.time <=> b.time }
-		elsif how == 'open'
+		when /^closed?$/
+			sort_like { |a, b| a.open.to_i <=> b.open.to_i }
+		when 'open'
 			sort_like { |b, a| a.open.to_i <=> b.open.to_i }
+		end
+
+		if reverse
+			@hash.each{|x| x[1].reverse!}
 		end
 
 		dump & ack
@@ -343,7 +364,6 @@ Try to write the exact ID?"
 		end
 
 		unless added
-			puts "x."
 			hash[cat] = @hash[cat]
 		end
 		@hash = hash

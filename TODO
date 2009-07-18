@@ -1,6 +1,6 @@
 Feature
 
    (X) #0   09/07/17  colorful output in bf list
-   ( ) #1   09/07/17  commands to shortest unambiguous string
+   (X) #1   09/07/17  commands to shortest unambiguous string
    (X) #2   09/07/17  sorting
    (X) #3   09/07/17  have bugs at multiple categories

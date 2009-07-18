@@ -75,7 +75,7 @@ when 'add', '+'
 	else Please.add Please.find_cat(ARGV[1]), sentence(2..-1)
 	end
 	
-when 'del', '-'
+when 'delete', '-'
 	cry "what to delete?" unless arg1
 	Please.delete arg1, arg2
 

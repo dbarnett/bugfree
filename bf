@@ -19,11 +19,9 @@ $errors = []
 require 'pathname'
 require 'abbrev'
 
-$LOAD_PATH << MYDIR =
-	File.dirname( Pathname.new( __FILE__ ).realpath )
-
+$:<< MYDIR=File.dirname(Pathname(__FILE__).realpath)
 for file in Dir.glob( "#{MYDIR}/code/**/*.rb" )
-	require file [MYDIR.size + 1 ... -3]
+	require file [MYDIR.size + 1 .. -4]
 end
 
 ##--------------------------------------------------
@@ -152,7 +150,7 @@ else
 	say.no_such_command(cmd)
 
 ## don't bother to print a stack trace for UserErrors,
-## since users are usually too stupid anyway to make use of them.
+## since they are raised only for the message
 end rescue UserError===$! ? say( $!.message ) : raise
 
 

@@ -2,9 +2,11 @@
 # bugfree (hopefully)
 VERSION = 'bugfree version 3.14.159'
 
+require 'tempfile'
 require 'set'
 
 # Constants {{{
+$spaces = false
 class UserError < RuntimeError; end
 DB_BASENAMES = %w[TODO TODO.TXT .TODO .TODO.TXT BUGS BUGS.TXT .ASDF]
 EDITOR = ENV['EDITOR'] || 'nano'
@@ -18,6 +20,24 @@ PARSE_DATEFORMAT = lambda do |str|
 	return Time.at(0)
 end
 DEFAULT_CATEGORY = 'General'
+HELP = <<DONE
+usage: bf [OPTIONS] COMMAND [ARGS]
+options:
+   --help     Prints this help. use --help COMMAND for specific help
+   --version  Displays the version
+commands:
+   init    Create an empty todo file
+   list    List all bugs. (Default if a database was found)
+   edit    Edits the bug or the whole database in an external editor
+   open    Open a bug, or list all opened bugs
+   close   Close a bug, or list all closed bugs
+   sort    Sort by id, time, text, open, close, reverse
+   move    Move a bug to a different category
+   add     Add a bug
+   remove  Delete a bug
+   set     Modify the text of a bug
+All commands can be abbreviated.
+DONE
 #}}}
 # Functions {{{
 def bold;     "\033[1m" end
@@ -31,21 +51,19 @@ def blue;     "\033[0;34m" end
 def magenta;  "\033[0;35m" end
 def cyan;     "\033[0;36m" end
 def white;    "\033[0;37m" end
+
+def pager(&block)
+	IO.popen(PAGER, 'w', &block)
+end
+
 def say(*args)
-	pager do |less|
-		less.write(args.join(' '))
+	pager do |io|
+		io.write(args.join(' '))
 	end
 end
+
 def cry(str, *args)
 	raise UserError, str % args, caller( 1 )
-end
-def pager(&block)
-	begin
-		less = IO.popen(PAGER, 'w')
-		yield less
-	ensure
-		less.close()
-	end
 end
 #}}}
 # Extensions for builtin classes {{{
@@ -72,14 +90,10 @@ end
 #}}}
 class AbbrevHash < Hash #{{{
 	def abbrev(name)
-		found_item = nil
-		for key, block in self
-			if key.start_with? name
-				return nil if found_item
-				found_item = block
-			end
+		for key, value in self
+			return value if key.start_with?(name)
 		end
-		return found_item
+		return nil
 	end
 end #}}}
 class Tracker < Hash #{{{
@@ -132,6 +146,9 @@ class Tracker < Hash #{{{
 		return cat
 	end
 	def _find_category(hint)
+		if hint.nil?
+			return nil
+		end
 		if hint.is_a? Category
 			return self[hint.name]
 		end
@@ -165,23 +182,24 @@ class Tracker < Hash #{{{
 	# converting {{{
 	def to_io(io, format=false)
 		start = true
+		spaces = (format == false) || $spaces
 		for cat in self.values
 			next if cat.empty?
 			if start
 				start = false
 			else
-				io.write("\n\n")
+				if spaces then io.write("\n\n") end
 			end
 			if format
-				io.write("#{bold}#{cat.name}#{no_attr}\n\n")
+				io.write("#{bold}#{cat.name}#{no_attr}\n")
 			else
-				io.write(cat.name + "\n\n")
+				io.write(cat.name + "\n")
 			end
+			if spaces then io.write("\n") end
 			for id, bug in cat
 				if format
-					io.write("   (%s) #{cyan}#%-3d#{no_attr} %s\n" % [
-						(bug.open ? ' ' : "#{magenta}X#{no_attr}"),
-						bug.id, bug.txt ])
+					io.write("#{bug.open ? red : no_attr}%s#{no_attr} %s\n" \
+							 % [ "##{bug.id}".rjust(5), bug.txt ])
 				else
 					io.write("   (%s) #%-3d %s  %s\n" % [
 						(bug.open ? ' ' : 'X'), bug.id,
@@ -189,12 +207,12 @@ class Tracker < Hash #{{{
 				end
 				unless bug.more.empty?
 					bug.more.each_line do |line|
-						io.write("#{' '*15}#{line}")
+						io.write("#{' '*10}#{line}")
 					end
 				end
 			end
 		end
-		io.write("\n")
+		if spaces then io.write("\n") end
 	end
 	def Tracker.from_io(io)
 		tr = new
@@ -211,10 +229,10 @@ class Tracker < Hash #{{{
 					bug = all_bugs[bug.id] || bug
 					cat.add_bug(bug)
 					all_bugs.add_bug(bug)
-					lasbug = bug
+					lastbug = bug
 					bug.n += 1
 				end
-			elsif lastbug and line =~ / {15}(.+)$/
+			elsif lastbug and line =~ /\s{5}\s+(.+)$/
 				lastbug.more += $1 + "\n" if lastbug.n == 1
 			end
 		end
@@ -297,7 +315,13 @@ class Bf #{{{
 			init!
 			puts "foo"
 		end
-		on 'edit' do edit! end
+		on 'edit' do |args|
+			if args.empty?
+				edit!
+			else
+				edit_bug! args.join(' ')
+			end
+		end
 		on 'sort' do |args| sort!(*args) end
 		on 'add', '+', '=' do |args|
 			case args.size
@@ -351,20 +375,7 @@ class Bf #{{{
 				dump!
 			end
 		end
-	def move(what, to)
-		bug = by_guess( what )
-		cat = find_cat( to )
-
-		cry "the bug is already in that category" if bug.in_cat?( cat )
-
-		bug.cat.each {|c| @hash[c].delete( bug.id ) }
-		bug.cat = [cat]
-		( @hash[cat] ||= {} )[bug.id] = bug
-
-		dump
-		ack
-	end
-		on 'delete', 'remove', '-' do |args|
+		on 'delete', 'remove', 'rm', '-' do |args|
 			if args.empty?
 				cry 'Delete what?'
 			else
@@ -373,28 +384,8 @@ class Bf #{{{
 				dump!
 			end
 		end
-		on 'version', '--version' do
-			puts VERSION
-		end
-		on 'help', '-h', '--help' do |args|
-			say <<DONE
-usage: bf [OPTIONS] COMMAND [ARGS]
-options:
-    --help     prints this help. use --help COMMAND for specific help
-    --version  displays the version
-commands:
-   init      create an empty todo file
-   list      list all bugs. default action if a todo file exists
-   open      open a bug, or list all opened bugs
-   close     close a bug, or list all closed bugs
-   sort      sort by id, time, text, open, close, reverse
-   move      move a bug to a different category
-   add       add a bug
-   delete    delete a bug
-   set       modify the text of a bug
-   edit      edits the database in an external editor
-DONE
-		end
+		on 'version', '--version' do puts VERSION end
+		on 'help', '-h', '--help' do puts HELP end
 	end #}}}
 	# actions {{{
 	def find_db!
@@ -433,6 +424,26 @@ DONE
 	def edit!
 		find_db!
 		system("#{EDITOR} #{@dbfile}")
+	end
+	def edit_bug!(hint)
+		bug = find_bug(hint)
+		file = Tempfile.new('bf')
+		file.open()
+		file.write("#{bug.txt}\n")
+		file.write(bug.more) unless bug.more.empty?
+		file.close()
+		system("#{EDITOR} #{file.path}")
+
+		file.open()
+		new_content = file.readlines
+		file.close()
+		file.unlink()
+
+		unless new_content.empty?
+			bug.txt = new_content.shift
+			bug.more = new_content.join("")
+			dump!
+		end
 	end
 	def sort!(*args)
 		read!
@@ -487,7 +498,7 @@ DONE
 				return bug if bugid == id
 			end
 		end
-		cry "No bug with id = #{id}!"
+		cry "No bug with id #{id}!"
 	end
 	def find_bug(hint)
 		read!

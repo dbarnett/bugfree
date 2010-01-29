@@ -8,16 +8,17 @@ class TC_AbbrevHash < Test::Unit::TestCase
 		c = AbbrevHash.new
 		c['foo'] = 'a'
 		c['bar'] = 'b'
-		c['baz'] = 'z'
+		c['bazaar'] = 'z'
 
 		assert_equal "a", c.abbrev('f')
 		assert_equal "a", c.abbrev('fo')
 		assert_equal "a", c.abbrev('foo')
 		assert_equal "b", c.abbrev('bar')
 		assert_equal "z", c.abbrev('baz')
-		assert_equal "z", c.abbrev('baz')
-		assert_nil c.abbrev('ba')
 		assert_nil c.abbrev('fskljl')
+		assert_equal "b", c.abbrev('ba')
+		assert_equal "z", c.abbrev('bazaar')
+		assert_equal "z", c.abbrev('baz')
 	end
 end
 

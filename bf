@@ -479,8 +479,12 @@ class Bf #{{{
 			end
 		end if %w[open close].include? what
 		tracker.delete_if {|name, category| category.empty?}
-		pager do |io|
-			tracker.to_io(io, format=true)
+		if tracker.empty?
+			say "You are bugfree." if what != 'close'
+		else
+			pager do |io|
+				tracker.to_io(io, format=true)
+			end
 		end
 	end
 	def set_status!(bug, open)

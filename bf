@@ -282,6 +282,7 @@ class Bf #{{{
 		@commands = nil
 		@dbfile = nil
 		@tracker = nil
+		@sort_categories = []
 		init_commands!
 	end
 	def main(*argv)
@@ -456,15 +457,35 @@ class Bf #{{{
 		add.call 'date', 'time' do sort_by{|a, b| a.time <=> b.time} end
 		add.call 'closed' do sort_by{|a, b| a.open.to_i <=> b.open.to_i} end
 		add.call 'open' do sort_by{|a, b| b.open.to_i <=> a.open.to_i} end
-		add.call 'reversed' do @tracker.each{|x| x[1].reverse!} end
+		add.call 'reversed' do @tracker.each{|x|
+			x[1].reverse! if @sort_categories.include? x[0]} end
 
 		if args.empty?
 			args = ['id']
 		end
 
+		@sort_categories = @tracker.keys
+		cleared_once = false
 		for arg in args
 			action = actions.abbrev(arg)
-			action.call() if action
+			if action
+				action.call()
+			else
+				cat = @tracker.find_category(arg).name
+				if cat
+					if cat[0...1] == '-'
+						cat = cat[1..-1]
+						@sort_categories.delete(cat)
+					else
+						cat = cat[1..-1] if cat[0...1] == '+'
+						if not cleared_once
+							cleared_once = true
+							@sort_categories.clear
+						end
+						@sort_categories << cat
+					end
+				end
+			end
 		end
 		dump!
 	end
@@ -539,7 +560,9 @@ class Bf #{{{
 	end
 	def sort_by
 		for cat, bugs in @tracker
-			bugs.sort! do |a, b| yield a[1], b[1] end
+			if @sort_categories.include? cat
+				bugs.sort! do |a, b| yield a[1], b[1] end
+			end
 		end
 	end
 	#}}}

@@ -292,7 +292,12 @@ class Bf #{{{
 				if process = @commands.abbrev(cmdname)
 					process.call(argv)
 				else
-					main('help')
+					read!
+					if category = @tracker.find_category(cmdname)
+						main('list', 'open', category.name, *argv)
+					else
+						main('help')
+					end
 				end
 			else
 				begin
@@ -496,11 +501,21 @@ class Bf #{{{
 		end
 		dump!
 	end
-	def list!(what=nil)
+	def list!(*args)
 		read!
+		what = 'all'
+		keep_categories = []
+		for arg in args
+			if %w[open close all].include? arg
+				what = arg
+			elsif category = @tracker.find_category(arg)
+				keep_categories << category.name
+			end
+		end
 		tracker = @tracker.clone
-
-		what ||= 'all'
+		tracker.delete_if do |catname, category|
+			not keep_categories.include?(catname)
+		end unless keep_categories.empty?
 		for catname, category in tracker
 			category.delete_if do |id, bug|
 				bug.open == (what != 'open')

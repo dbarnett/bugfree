@@ -1,0 +1,52 @@
+Bugfree is a tiny bug tracker with git-like commands, usable from the shell.
+It gives you methods for managing tasks in a plain text todo-list.
+These tasks can be "opened" and "closed", are divided into categories and can
+be inserted, moved, deleted or sorted with simple commands.
+
+
+For a list of commands, type:
+    ./bf.rb --help
+
+
+Sample usage:
+
+    $ sudo ln -s ~/downloads/bugfree/bf.rb /usr/bin/bf
+    Password:
+    $ bf init
+    Creating TODO
+    $ ls
+    TODO
+    $ bf add "My category name" lets test this program.
+    $ bf
+    My category name
+       #0 lets test this program.
+    $ # notice the abbreviated category name:
+    $ bf add categ test test test test  
+    $ bf
+    My category name
+       #0 lets test this program.
+       #1 test test test test
+    $ bf close vsn3fiojaf
+    No such bug!
+    $ bf close test
+    Ambiguous query, please be more precise.
+    $ bf close "test test"
+    $ bf list open
+    My category name
+       #0 lets test this program.
+    $ bf list
+    My category name
+       #0 lets test this program.
+       #1 test test test test
+    $ cat TODO
+    My category name
+
+       ( ) #0   10/02/09  lets test this program.
+       (X) #1   10/02/09  test test test test
+    $ bf close 0
+    $ bf
+    You are bugfree.
+
+
+For more info, type this and read the code yourself:
+    less bf.rb

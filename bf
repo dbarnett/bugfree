@@ -312,9 +312,16 @@ class Bf #{{{
 		return if @commands
 		@commands = AbbrevHash.new
 		on "init" do |args|
-			find! or init!
-			init!
-			puts "foo"
+			@dbfile = nil
+			begin
+				find_db!(1)
+			rescue UserError
+				@dbfile = DB_BASENAMES[0]
+				say "Creating #{@dbfile}"
+				File.open(@dbfile, 'a').close
+			else
+				cry "A database already exists."
+			end
 		end
 		on 'edit' do |args|
 			if args.empty?
@@ -389,10 +396,10 @@ class Bf #{{{
 		on 'help', '-h', '--help' do puts HELP end
 	end #}}}
 	# actions {{{
-	def find_db!
+	def find_db!(depth=10)
 		return if @dbfile
 		directory = '.'
-		10.times do
+		depth.times do
 			for fname in Dir.entries(directory)
 				for todoname in DB_BASENAMES
 					if fname.upcase == todoname

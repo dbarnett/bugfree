@@ -329,7 +329,7 @@ class Bf #{{{
 				cry "A database already exists."
 			end
 		end
-		on 'edit' do |args|
+		on 'edit', 'vi' do |args|
 			if args.empty?
 				edit!
 			else

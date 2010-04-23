@@ -240,9 +240,10 @@ class Tracker < Hash #{{{
 	end #}}}
 end #}}}
 class Category < Hash #{{{
-	attr_accessor :name
-	def initialize(name)
+	attr_accessor :name, :relevant
+	def initialize(name, relevant=true)
 		@name = name
+		@relevant = name[-1] != ?*
 	end
 	def add_bug(bug)
 		self[bug.id] = bug
@@ -504,10 +505,14 @@ class Bf #{{{
 	def list!(*args)
 		read!
 		what = 'all'
+		relevant = true
 		keep_categories = []
 		for arg in args
 			if %w[open close all].include? arg
 				what = arg
+				relevant = nil if arg == 'all'
+			elsif %w[rel irrel].include? arg
+				relevant = arg == 'rel'
 			elsif category = @tracker.find_category(arg)
 				keep_categories << category.name
 			end
@@ -522,6 +527,9 @@ class Bf #{{{
 			end
 		end if %w[open close].include? what
 		tracker.delete_if {|name, category| category.empty?}
+		if !relevant.nil?
+			tracker.delete_if {|name, category| category.relevant != relevant}
+		end
 		if tracker.empty?
 			say "You are bugfree." if what != 'close'
 		else

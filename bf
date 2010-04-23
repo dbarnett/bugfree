@@ -351,7 +351,8 @@ class Bf #{{{
 				dump!
 			end
 		end
-		on 'list', 'all' do |args| list!(*args) end
+		on 'list' do |args| list!(*args) end
+		on 'all' do |args| list!('all', *args) end
 		on 'open' do |args|
 			if args.empty?
 				list! 'open'

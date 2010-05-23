@@ -1,12 +1,13 @@
+General
+
+   ( ) #5   10/05/22  colorized output broken, prints 'ESC[1m'
+   (X) #4   10/01/29  rewrite
+
+
 Feature
 
    (X) #0   09/07/17  colorful output in bf list
    (X) #1   09/07/17  commands to shortest unambiguous string
    (X) #2   09/07/17  sorting
    (X) #3   09/07/17  have bugs at multiple categories
-
-
-General
-
-   (X) #4   10/01/29  rewrite
 
